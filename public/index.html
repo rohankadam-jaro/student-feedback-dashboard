@@ -203,13 +203,6 @@
       <button class="filter-btn" data-domain="Energy"               onclick="setFilter('domain',this)">Energy</button>
       <button class="filter-btn" data-domain="Others"               onclick="setFilter('domain',this)">Others</button>
     </div>
-    <div class="filter-sep"></div>
-    <select class="sort-sel" id="sort-sel" onchange="onFilter()">
-      <option value="rating-desc">Highest Rated</option>
-      <option value="rating-asc">Lowest Rated</option>
-      <option value="exp-desc">Most Experienced</option>
-      <option value="name-asc">Name A–Z</option>
-    </select>
   </div>
 
   <section class="video-sec" id="video-sec"><h2>Student Videos<small id="v-count"></small></h2><div class="v-grid" id="v-grid"></div></section>
@@ -334,7 +327,7 @@ function goPage(p){
 
 function applyFilters() {
   const q='';
-  const sort=document.getElementById('sort-sel').value;
+  const sort='rating-desc';
   filtered=ALL.filter(t=>{
     if(activeUni!=='all' && t.u!==activeUni) return false;
     if(activeRating!=='all' && t.r!==parseFloat(activeRating)) return false;
