@@ -186,11 +186,6 @@
     <div class="co-chips" id="co-chips"></div>
   </div>
   <div class="controls">
-    <div class="search-wrap">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="search" placeholder="Search name, feedback…" oninput="onFilter()" />
-    </div>
-    <div class="filter-sep"></div>
     <div class="co-search-wrap">
       <span class="search-icon">🏢</span>
       <input type="text" id="co-search" list="co-list" placeholder="Search company…" oninput="onCoSearch()" />
@@ -338,7 +333,7 @@ function goPage(p){
 }
 
 function applyFilters() {
-  const q=document.getElementById('search').value.toLowerCase().trim();
+  const q='';
   const sort=document.getElementById('sort-sel').value;
   filtered=ALL.filter(t=>{
     if(activeUni!=='all' && t.u!==activeUni) return false;
