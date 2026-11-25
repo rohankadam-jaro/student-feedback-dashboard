@@ -146,6 +146,17 @@
     .v-yt { margin-left:auto; font-size:.68rem; font-weight:700; color:var(--red); text-decoration:none; white-space:nowrap; }
     .t-uni { background:var(--navy); color:#fff; }
     @media(max-width:820px) { .uni-wrap,.video-sec { padding-left:20px; padding-right:20px; } }
+
+    .filters { background:var(--white); border-bottom:1px solid var(--border); padding:8px 48px 14px; }
+    .f-row { display:flex; align-items:center; gap:14px; padding:8px 0; }
+    .f-label { width:130px; flex-shrink:0; font-size:.68rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+    .f-opts { display:flex; gap:8px; flex-wrap:wrap; flex:1; }
+    .filters .chip { display:inline-flex; align-items:center; }
+    .uni-sel { font-family:inherit; font-size:.82rem; font-weight:700; padding:9px 12px; border:1.5px solid var(--border); border-radius:8px; color:var(--navy); background:var(--white); outline:none; cursor:pointer; min-width:340px; max-width:100%; }
+    .co-logo,.co-ini { width:20px; height:20px; border-radius:5px; margin-right:8px; flex-shrink:0; }
+    .co-logo { object-fit:contain; background:#fff; }
+    .co-ini { display:inline-flex; align-items:center; justify-content:center; background:var(--mist); color:var(--navy); font-size:.6rem; font-weight:800; }
+    @media(max-width:820px) { .filters{padding-left:20px;padding-right:20px;} .f-row{flex-direction:column;align-items:flex-start;gap:6px;} .f-label{width:auto;} .uni-sel{min-width:0;width:100%;} }
   </style>
 </head>
 <body>
@@ -172,8 +183,6 @@
     </div>
   </section>
 
-  <div class="uni-wrap"><span class="co-chips-label">University:</span><div class="co-chips" id="uni-chips"></div></div>
-
   <div class="stats-strip">
     <div class="stat"><div class="stat-value" id="s-total">—</div><div class="stat-label">Verified Reviews</div></div>
     <div class="stat"><div class="stat-value" id="s-avg">—</div><div class="stat-label">Avg. Rating</div></div>
@@ -181,29 +190,11 @@
     <div class="stat"><div class="stat-value" id="s-domains">—</div><div class="stat-label">Industry Domains</div></div>
   </div>
 
-  <div class="co-chips-wrap">
-    <span class="co-chips-label">Top Companies:</span>
-    <div class="co-chips" id="co-chips"></div>
-  </div>
-  <div class="controls">
-    <div class="co-search-wrap">
-      <span class="search-icon">🏢</span>
-      <input type="text" id="co-search" list="co-list" placeholder="Search company…" oninput="onCoSearch()" />
-      <datalist id="co-list"></datalist>
-    </div>
-    <div class="filter-sep"></div>
-    <div class="filter-group">
-      <span class="filter-label">Domain:</span>
-      <button class="filter-btn active" data-domain="all"           onclick="setFilter('domain',this)">All</button>
-      <button class="filter-btn" data-domain="IT"                   onclick="setFilter('domain',this)">IT</button>
-      <button class="filter-btn" data-domain="BFSI"                 onclick="setFilter('domain',this)">BFSI</button>
-      <button class="filter-btn" data-domain="Healthcare"           onclick="setFilter('domain',this)">Healthcare</button>
-      <button class="filter-btn" data-domain="Manufacturing"        onclick="setFilter('domain',this)">Manufacturing</button>
-      <button class="filter-btn" data-domain="E-commerce"           onclick="setFilter('domain',this)">E-commerce</button>
-      <button class="filter-btn" data-domain="Energy"               onclick="setFilter('domain',this)">Energy</button>
-      <button class="filter-btn" data-domain="Others"               onclick="setFilter('domain',this)">Others</button>
-    </div>
-  </div>
+  <section class="filters">
+    <div class="f-row"><span class="f-label">Domain:</span><div class="f-opts" id="domain-chips"><button class="chip active" data-domain="all" onclick="setFilter('domain',this)">All</button><button class="chip" data-domain="IT" onclick="setFilter('domain',this)">IT</button><button class="chip" data-domain="BFSI" onclick="setFilter('domain',this)">BFSI</button><button class="chip" data-domain="Healthcare" onclick="setFilter('domain',this)">Healthcare</button><button class="chip" data-domain="Manufacturing" onclick="setFilter('domain',this)">Manufacturing</button><button class="chip" data-domain="E-commerce" onclick="setFilter('domain',this)">E-commerce</button><button class="chip" data-domain="Energy" onclick="setFilter('domain',this)">Energy</button><button class="chip" data-domain="Others" onclick="setFilter('domain',this)">Others</button></div></div>
+    <div class="f-row"><span class="f-label">University:</span><select class="uni-sel" id="uni-sel" onchange="setUni(this.value)"></select></div>
+    <div class="f-row"><span class="f-label">Top Companies:</span><div class="f-opts" id="co-chips"></div></div>
+  </section>
 
   <section class="video-sec" id="video-sec"><h2>Student Videos<small id="v-count"></small></h2><div class="v-grid" id="v-grid"></div></section>
 
@@ -332,8 +323,7 @@ function applyFilters() {
     if(activeUni!=='all' && t.u!==activeUni) return false;
     if(activeRating!=='all' && t.r!==parseFloat(activeRating)) return false;
     if(activeDomain!=='all' && t.d!==activeDomain) return false;
-    if(q && !t.n.toLowerCase().includes(q) && !t.c.toLowerCase().includes(q) && !t.f.toLowerCase().includes(q) && !t.de.toLowerCase().includes(q)) return false;
-    if(activeCompany!=='all' && !t.c.toLowerCase().includes(activeCompany.toLowerCase())) return false;
+    if(activeCompany!=='all'){const c=canon(t.c); if(!c||c.n!==activeCompany) return false;}
     return true;
   });
   if(sort==='rating-desc') filtered.sort((a,b)=>b.r-a.r||a.n.localeCompare(b.n));
@@ -356,18 +346,14 @@ function setFilter(type,btn){
   applyFilters();
 }
 
+const CO=[[/accenture/,'Accenture','accenture.com'],[/deloitte/,'Deloitte','deloitte.com'],[/concentrix/,'Concentrix','concentrix.com'],[/^amazon/,'Amazon','amazon.com'],[/^tcs$|tata consultancy/,'Tata Consultancy Services','tcs.com'],[/wipro/,'Wipro','wipro.com'],[/capgemini/,'Capgemini','capgemini.com'],[/cognizant/,'Cognizant','cognizant.com'],[/genpact/,'Genpact','genpact.com'],[/tech mahindra/,'Tech Mahindra','techmahindra.com'],[/hdfc bank/,'HDFC Bank','hdfcbank.com'],[/^ibm$/,'IBM','ibm.com'],[/^adp$/,'ADP','adp.com'],[/^ey$|ernst/,'EY','ey.com'],[/yes bank/,'Yes Bank','yesbank.in'],[/reliance retail/,'Reliance Retail','relianceretail.com'],[/infosys/,'Infosys','infosys.com'],[/^wns/,'WNS','wns.com'],[/bank of america/,'Bank of America','bankofamerica.com'],[/kpmg/,'KPMG','kpmg.com'],[/kotak/,'Kotak Mahindra Bank','kotak.com'],[/deutsche/,'Deutsche Bank','db.com'],[/idfc/,'IDFC FIRST Bank','idfcfirstbank.com'],[/cbre/,'CBRE','cbre.com'],[/^ust$/,'UST','ust.com'],[/eclerx/,'eClerx','eclerx.com'],[/teleperformance/,'Teleperformance','teleperformance.com'],[/bajaj finance/,'Bajaj Finance','bajajfinserv.in'],[/salesforce/,'Salesforce','salesforce.com'],[/hcl/,'HCLTech','hcltech.com'],[/tata motors/,'Tata Motors','tatamotors.com'],[/dcb bank/,'DCB Bank','dcbbank.com'],[/air india/,'Air India','airindia.com'],[/astrazeneca/,'AstraZeneca','astrazeneca.com'],[/hexaware/,'Hexaware','hexaware.com'],[/teamlease/,'TeamLease','teamlease.com'],[/policy ?bazaar/,'Policybazaar','policybazaar.com'],[/apollo hospital/,'Apollo Hospitals','apollohospitals.com'],[/alstom/,'Alstom','alstom.com'],[/bosch/,'Bosch','bosch.com'],[/sun pharma/,'Sun Pharma','sunpharma.com'],[/dr\.? reddy/,"Dr. Reddy's",'drreddys.com'],[/mott macdonald/,'Mott MacDonald','mottmac.com'],[/lodha/,'Lodha','lodhagroup.com'],[/^anz$/,'ANZ','anz.com'],[/^indian army/,'Indian Army','joinindianarmy.nic.in']];
+function canon(c){const s=(c||'').trim(); if(!s) return null; const k=s.toLowerCase(); for(const [re,n,d] of CO) if(re.test(k)) return {n,d}; return {n:s,d:''};}
+function iniEl(n){const s=document.createElement('span');s.className='co-ini';s.textContent=n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();return s;}
+
 function setCompany(btn){
-  document.querySelectorAll('.chip').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#co-chips .chip').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   activeCompany=btn.dataset.co;
-  document.getElementById('co-search').value=activeCompany==='all'?'':activeCompany;
-  applyFilters();
-}
-
-function onCoSearch(){
-  const v=document.getElementById('co-search').value.trim();
-  activeCompany=v||'all';
-  document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active',b.dataset.co===activeCompany));
   applyFilters();
 }
 
@@ -381,11 +367,16 @@ function refreshScope(){
   document.getElementById('s-avg').textContent=avg+'★';
   document.getElementById('s-best').textContent=pool.filter(t=>t.r===5).length.toLocaleString()+'+';
   document.getElementById('s-domains').textContent=new Set(pool.map(t=>t.d)).size+'+';
-  const cc={};pool.forEach(t=>{cc[t.c]=(cc[t.c]||0)+1;});
-  const top10=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,10).map(e=>e[0]);
-  document.getElementById('co-chips').innerHTML='<button class="chip active" data-co="all" onclick="setCompany(this)">All</button>'+top10.map(c=>`<button class="chip" data-co="${esc(c)}" onclick="setCompany(this)">${esc(c)}</button>`).join('');
-  document.getElementById('co-list').innerHTML=Object.keys(cc).sort().map(c=>`<option value="${esc(c)}">`).join('');
-  activeCompany='all'; document.getElementById('co-search').value='';
+  const cc={};pool.forEach(t=>{const c=canon(t.c);if(c){const o=cc[c.n]||(cc[c.n]={n:c.n,d:c.d,k:0});o.k++;}});
+  const top10=Object.values(cc).sort((a,b)=>b.k-a.k).slice(0,10);
+  const wrap=document.getElementById('co-chips');
+  wrap.innerHTML='<button class="chip active" data-co="all" onclick="setCompany(this)">All</button>';
+  top10.forEach(o=>{
+    const b=document.createElement('button');b.className='chip';b.dataset.co=o.n;b.onclick=()=>setCompany(b);
+    if(o.d){const i=document.createElement('img');i.className='co-logo';i.alt='';i.loading='lazy';i.src='https://www.google.com/s2/favicons?domain='+o.d+'&sz=64';i.onerror=()=>i.replaceWith(iniEl(o.n));b.appendChild(i);}else b.appendChild(iniEl(o.n));
+    b.appendChild(document.createTextNode(o.n));wrap.appendChild(b);
+  });
+  activeCompany='all';
   const vids=VIDEOS.filter(v=>activeUni==='all'||v.u===activeUni);
   document.getElementById('video-sec').style.display=vids.length?'block':'none';
   document.getElementById('v-count').textContent=vids.length+' video'+(vids.length!==1?'s':'');
@@ -393,16 +384,13 @@ function refreshScope(){
   applyFilters();
 }
 
-function setUni(btn){
-  document.querySelectorAll('#uni-chips .chip').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); activeUni=btn.dataset.u; refreshScope();
-}
+function setUni(v){ activeUni=v; refreshScope(); }
 
 Promise.all([fetch('/feedback.json').then(r=>r.json()), fetch('/videos.json').then(r=>r.json()).catch(()=>[])])
   .then(([data,vids])=>{
     ALL=data; VIDEOS=vids;
     const uc={};ALL.forEach(t=>{uc[t.u]=(uc[t.u]||0)+1;});
-    document.getElementById('uni-chips').innerHTML='<button class="chip active" data-u="all" onclick="setUni(this)">All</button>'+Object.entries(uc).sort((a,b)=>b[1]-a[1]).map(([u,n])=>`<button class="chip" data-u="${esc(u)}" onclick="setUni(this)">${esc(UNI_NAMES[u]||u)}</button>`).join('');
+    document.getElementById('uni-sel').innerHTML='<option value="all">All</option>'+Object.entries(uc).sort((a,b)=>b[1]-a[1]).map(([u])=>`<option value="${esc(u)}">${esc(UNI_NAMES[u]||u)}</option>`).join('');
     refreshScope();
   })
   .catch(()=>{
