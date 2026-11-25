@@ -35,7 +35,7 @@
     .hero-eyebrow-dot { width:5px; height:5px; border-radius:50%; background:var(--gold); }
     .hero-eyebrow span { font-size:.68rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.75); }
     .hero-title { font-family:'Libre Baskerville',serif; font-size:clamp(1.8rem,4vw,2.8rem); font-weight:700; color:var(--white); line-height:1.2; margin-bottom:12px; }
-    .hero-title .accent { color:#ff8f8f; font-style:italic; }
+    .hero-title .accent { color:#FFCF24; font-style:italic; }
     .red-rule { width:48px; height:3px; background:var(--red); border-radius:2px; margin:16px 0; }
     .hero-desc { font-size:.9rem; color:rgba(255,255,255,.6); line-height:1.75; }
 
@@ -159,6 +159,28 @@
     .co-logo { object-fit:contain; background:#fff; }
     .co-ini { display:inline-flex; align-items:center; justify-content:center; background:var(--mist); color:var(--navy); font-size:.6rem; font-weight:800; }
     @media(max-width:820px) { .filters{padding-left:20px;padding-right:20px;} .f-row{flex-direction:column;align-items:flex-start;gap:6px;} .f-label{width:auto;} .uni-sel,.co-in{min-width:0;width:100%;} }
+
+    .f-split { gap:36px; flex-wrap:wrap; }
+    .f-pair { display:flex; align-items:center; gap:14px; }
+    .f-pair + .f-pair .f-label { width:auto; }
+    .uni-sel,.co-in { min-width:300px; }
+    @keyframes rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+    .hero-inner { animation:rise .6s ease both; }
+    .stat { animation:rise .5s ease both; }
+    .stat:nth-child(2) { animation-delay:.06s; } .stat:nth-child(3) { animation-delay:.12s; } .stat:nth-child(4) { animation-delay:.18s; }
+    .t-card { animation:rise .4s ease both; animation-delay:calc(var(--i,0) * 35ms); }
+    .video-sec { animation:rise .45s ease both; }
+    .chip { transition:all .18s ease; }
+    .chip:hover { transform:translateY(-1px); }
+    .chip:active { transform:scale(.96); }
+    .chip.active { box-shadow:0 3px 10px rgba(43,47,110,.25); }
+    .uni-sel,.co-in { transition:border-color .2s, box-shadow .2s; }
+    .uni-sel:focus,.co-in:focus { border-color:var(--navy); box-shadow:0 0 0 3px rgba(43,47,110,.1); }
+    .v-card { transition:transform .2s, box-shadow .2s; }
+    .v-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+    .pg-btn:active { transform:scale(.95); }
+    @media(max-width:820px) { .f-split { gap:0; } .f-pair { flex-direction:column; align-items:flex-start; gap:6px; width:100%; padding:8px 0; } .f-pair + .f-pair .f-label { width:auto; } .uni-sel,.co-in { min-width:0; width:100%; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; } }
   </style>
 </head>
 <body>
@@ -180,7 +202,6 @@
       </div>
       <h1 class="hero-title">What Our Students<br/><span class="accent">Say About Us</span></h1>
       <div class="red-rule"></div>
-      <p class="hero-desc">Real experiences from Jaro students across DPU, BVDU, Symbiosis, Amrita, Amity, CU, DSU, LIBA, Parul, MUJ and Dr. MGR.</p>
     </div>
   </section>
 
@@ -193,9 +214,8 @@
 
   <section class="filters">
     <div class="f-row"><span class="f-label">Domain:</span><div class="f-opts" id="domain-chips"><button class="chip active" data-domain="all" onclick="setFilter('domain',this)">All</button><button class="chip" data-domain="IT" onclick="setFilter('domain',this)">IT</button><button class="chip" data-domain="BFSI" onclick="setFilter('domain',this)">BFSI</button><button class="chip" data-domain="Healthcare" onclick="setFilter('domain',this)">Healthcare</button><button class="chip" data-domain="Manufacturing" onclick="setFilter('domain',this)">Manufacturing</button><button class="chip" data-domain="E-commerce" onclick="setFilter('domain',this)">E-commerce</button><button class="chip" data-domain="Energy" onclick="setFilter('domain',this)">Energy</button><button class="chip" data-domain="Others" onclick="setFilter('domain',this)">Others</button></div></div>
-    <div class="f-row"><span class="f-label">University:</span><select class="uni-sel" id="uni-sel" onchange="setUni(this.value)"></select></div>
     <div class="f-row"><span class="f-label">Top Companies:</span><div class="f-opts" id="co-chips"></div></div>
-    <div class="f-row"><span class="f-label">Company:</span><input class="co-in" id="co-search" list="co-list" placeholder="Search company…" oninput="onCoSearch()" autocomplete="off" /><datalist id="co-list"></datalist></div>
+    <div class="f-row f-split"><div class="f-pair"><span class="f-label">University:</span><select class="uni-sel" id="uni-sel" onchange="setUni(this.value)"></select></div><div class="f-pair"><span class="f-label">Company:</span><input class="co-in" id="co-search" list="co-list" placeholder="Search company…" oninput="onCoSearch()" autocomplete="off" /><datalist id="co-list"></datalist></div></div>
   </section>
 
   <section class="video-sec" id="video-sec"><h2>Student Videos<small id="v-count"></small></h2><div class="v-grid" id="v-grid"></div></section>
@@ -248,7 +268,7 @@ function card(t, idx) {
   const col = COLORS[(t.n.charCodeAt(0)||0) % COLORS.length];
   const id  = 'f'+idx, bid = 'b'+idx;
   const fb  = t.f.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return `<div class="t-card">
+  return `<div class="t-card" style="--i:${idx%12}">
     <div class="t-top">
       <div class="t-avatar" style="background:${col}">${initials(t.n)}</div>
       <div class="t-info">
@@ -369,12 +389,20 @@ function onCoSearch(){
 const UNI_NAMES={"DPU": "Dr. D.Y. Patil University", "BVDU": "Bharati Vidyapeeth University", "Symbiosis": "Symbiosis International University", "Amrita": "Amrita Vishwa Vidyapeetham", "Amity": "Amity University Online", "CU": "Chandigarh University", "DSU": "Dayananda Sagar University", "LIBA": "Loyola Institute of Business Administration", "Parul": "Parul University", "MUJ": "Manipal University Jaipur", "Dr. MGR": "Dr. MGR Educational and Research Institute"};
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+function countUp(id,n,suf){
+  const el=document.getElementById(id);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){el.textContent=n.toLocaleString()+suf;return;}
+  const t0=performance.now();
+  (function f(t){const p=Math.min((t-t0)/600,1);el.textContent=Math.round(n*(1-Math.pow(1-p,3))).toLocaleString()+suf;if(p<1)requestAnimationFrame(f);})(t0);
+}
+const ICON={'tcs.com':'https://icons.duckduckgo.com/ip3/www.tcs.com.ico','concentrix.com':'https://icons.duckduckgo.com/ip3/www.concentrix.com.ico'};
+
 function refreshScope(){
   const pool = activeUni==='all' ? ALL : ALL.filter(t=>t.u===activeUni);
   const avg=pool.length?(pool.reduce((s,t)=>s+t.r,0)/pool.length).toFixed(1):'—';
-  document.getElementById('s-total').textContent=pool.length.toLocaleString()+'+';
+  countUp('s-total',pool.length,'+');
   document.getElementById('s-avg').textContent=avg+'★';
-  document.getElementById('s-best').textContent=pool.filter(t=>t.r===5).length.toLocaleString()+'+';
+  countUp('s-best',pool.filter(t=>t.r===5).length,'+');
   document.getElementById('s-domains').textContent=new Set(pool.map(t=>t.d)).size+'+';
   const cc={};pool.forEach(t=>{const c=canon(t.c);if(c){const o=cc[c.n]||(cc[c.n]={n:c.n,d:c.d,k:0});o.k++;}});
   const top10=Object.values(cc).sort((a,b)=>b.k-a.k).slice(0,10);
@@ -382,7 +410,7 @@ function refreshScope(){
   wrap.innerHTML='<button class="chip active" data-co="all" onclick="setCompany(this)">All</button>';
   top10.forEach(o=>{
     const b=document.createElement('button');b.className='chip';b.dataset.co=o.n;b.onclick=()=>setCompany(b);
-    if(o.d){const i=document.createElement('img');i.className='co-logo';i.alt='';i.loading='lazy';i.src='https://www.google.com/s2/favicons?domain='+o.d+'&sz=64';i.onerror=()=>i.replaceWith(iniEl(o.n));b.appendChild(i);}else b.appendChild(iniEl(o.n));
+    if(o.d){const i=document.createElement('img');i.className='co-logo';i.alt='';i.loading='lazy';i.src=ICON[o.d]||'https://www.google.com/s2/favicons?domain='+o.d+'&sz=64';i.onerror=()=>i.replaceWith(iniEl(o.n));b.appendChild(i);}else b.appendChild(iniEl(o.n));
     b.appendChild(document.createTextNode(o.n));wrap.appendChild(b);
   });
   document.getElementById('co-list').innerHTML=Object.keys(cc).sort().map(n=>`<option value="${esc(n)}">`).join('');
