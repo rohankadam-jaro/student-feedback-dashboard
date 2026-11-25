@@ -294,7 +294,7 @@ function card(t, idx) {
       <span class="t-tag t-uni">${t.u}</span>
       <span class="t-tag">${t.p}</span>
       <span class="t-tag">${t.d}</span>
-      <span class="t-exp">${t.e} yr${t.e!==1?'s':''} exp.</span>
+      ${(()=>{const y=parseFloat(t.e);return y>0?`<span class="t-exp">${y} yr${y!==1?'s':''} exp.</span>`:'';})()}
     </div>
   </div>`;
 }
