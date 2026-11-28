@@ -284,7 +284,7 @@ function card(t, idx) {
       <div class="t-avatar" style="background:${col}">${initials(t.n)}</div>
       <div class="t-info">
         <div class="t-name">${t.n}</div>
-        <div class="t-meta">${t.de} · ${t.c}</div>
+        <div class="t-meta">${[t.de,t.c].filter(Boolean).join(' · ')}</div>
       </div>
     </div>
     <div class="t-stars">${stars(t.r)}<span class="t-rnum">${t.r.toFixed(1)}/5</span></div>
