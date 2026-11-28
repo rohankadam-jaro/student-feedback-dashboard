@@ -457,6 +457,8 @@ Promise.all([fetch('/feedback.json').then(r=>r.json()), fetch('/videos.json').th
     ALL=data; VIDEOS=vids;
     const uc={};ALL.forEach(t=>{uc[t.u]=(uc[t.u]||0)+1;});
     document.getElementById('uni-sel').innerHTML='<option value="all">All</option>'+Object.entries(uc).sort((a,b)=>b[1]-a[1]).map(([u])=>`<option value="${esc(u)}">${esc(UNI_NAMES[u]||u)}</option>`).join('');
+    const want=new URLSearchParams(location.search).get('u');  // portal cards link here as ?u=DPU etc.
+    if(want && uc[want]){ activeUni=want; document.getElementById('uni-sel').value=want; }
     refreshScope();
   })
   .catch(()=>{
