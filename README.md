@@ -16,4 +16,4 @@ No access restriction is configured; contains student names, so keep the repo pr
 ## Rebuild after data changes
 `python scripts/build_feedback.py` cleans `data/*.json` and rewrites the three generated files. It standardises
 company names (case, Ltd/Pvt suffixes, spacing, plurals, typos, known aliases like TCS -> Tata Consultancy Services),
-programs (Online MBA -> MBA), designation casing, names and experience values. Add a line to `ALIASES` to force a merge.
+programs (Online MBA -> MBA), job titles (spelling: Mannager -> Manager; Sr./Asst./Jr./Dy. expanded; HR/AVP kept upper), names and experience values. Add a word to `SPELL` to fix another title typo. Add a line to `ALIASES` to force a merge.

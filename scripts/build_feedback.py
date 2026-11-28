@@ -65,6 +65,53 @@ PROGRAMS = {
 }
 
 
+# job-title word fixes (curated: auto fuzzy matching wrongly merged real words like resolution/solution)
+SPELL = {w: fix for fix, ws in {
+    "executive": "exceutive excutive excustive excetuive execuitive exective exicutive excecutive",
+    "manager": "mamager mannager managar mager manger maneger", "officer": "offier offficer", "doctor": "docter",
+    "physiotherapist": "physiotherapish", "coordinator": "cordiantor coodinatore cordinator", "senior": "seniore sernior seinor",
+    "optometrist": "optomertist", "software": "sofware sodtware", "developer": "devloper", "development": "devlopment",
+    "sales": "salse", "nursing": "nirsing", "recruiter": "recuiter", "department": "deparment", "business": "bussniess buisness",
+    "analyst": "annalyst anaylst analist analysist", "consultant": "cunsultant", "customer": "cutomer", "technical": "technicial",
+    "operation": "opration", "supervisor": "supervisior", "administration": "adminstration", "specialist": "specalist speacialist",
+    "success": "sucess", "management": "manangement", "trainee": "teainee traniee", "engineer": "enineer enginner",
+    "assistant": "assitant asst ast", "associate": "asscoiate assosciate", "proprietor": "proprietar", "research": "reasearch",
+    "counsellor": "councellor", "ordinator": "oridinator", "senior": "sr snr", "junior": "jr", "deputy": "dy",
+}.items() for w in ws.split()}
+ACRONYMS = {"hr", "avp", "vp", "agm", "dgm", "gm", "ceo", "cfo", "coo", "cto", "qa", "qc", "rm", "sme", "tl", "it", "mis",
+            "bpo", "kyc", "crm", "sap", "ui", "ux", "ai", "ml", "rmo", "bdm", "bde", "asm", "tsm", "hod", "ehs", "hse",
+            "pmo", "erp", "seo", "icu", "opd", "scm"}
+
+
+def _fix_word(w, last):
+    low = w.lower()
+    if low == "assistance" and not last:  # "Assistance Manager" -> "Assistant Manager"
+        low = "assistant"
+    if low in SPELL or low == "assistant":
+        return SPELL.get(low, low).capitalize(), True
+    if low in ACRONYMS:
+        return low.upper(), False
+    return w, False
+
+
+def clean_title(s):
+    """Fix spelling, expand Sr/Asst/Jr/Dy, keep acronyms upper: 'Sr. excutive' -> 'Senior Executive'."""
+    s = re.sub(r"\s*/\s*", "/", re.sub(r"\s+-\s*|\s*-\s+", " - ", squash(s)))
+    s = re.sub(r"(?i)\b(sr|snr|jr|asst|ast|dy)[.-](?=\w)", r"\1. ", s)  # "Sr.Manager"/"SR-EXECUTIVE" -> "Sr. ..."
+    toks = s.split()
+    out = []
+    for i, t in enumerate(toks):
+        pre, core, post = re.match(r"^([(\[]*)(.*?)([.,:)\]]*)$", t).groups()
+        parts = []
+        for p in core.split("/"):
+            fixed, expanded = _fix_word(p, i == len(toks) - 1)
+            parts.append(fixed)
+            if expanded:
+                post = post.replace(".", "")  # "Sr." -> "Senior"
+        out.append(pre + "/".join(parts) + post)
+    return " ".join(out).strip(" -/,")
+
+
 def squash(s):
     return re.sub(r"\s+", " ", str(s or "")).strip().strip(".,;:-'\"").strip()
 
@@ -93,7 +140,7 @@ def nice_case(s):
     for i, w in enumerate(s.split()):
         if w.lower() in SMALL and i:
             out.append(w.lower())
-        elif w.isupper() and (len(w) <= 4 or not w.isalpha()):
+        elif w.isupper() and len(re.sub(r"[^A-Za-z]", "", w)) <= 4:
             out.append(w)
         elif w.isupper() or w.islower():
             out.append(w[:1].upper() + w[1:].lower())
@@ -167,15 +214,17 @@ def build_company_map(raws):
     return {raw: (final[k] if k else "") for raw, k in raw_key.items()}
 
 
-def build_simple_map(values):
-    """Case/spacing-only standardisation (designations)."""
+def build_title_map(values):
+    """Job titles: spelling + abbreviation fixes, then one display per case/punctuation-insensitive key."""
+    def tkey(s):
+        return " ".join(re.sub(r"[^a-z0-9&]+", " ", s.lower()).split())
+    cleaned = {v: clean_title(v) if squash(v) and not JUNK.match(squash(v)) else "" for v in values}
     groups = collections.defaultdict(collections.Counter)
     for v, n in values.items():
-        s = squash(v)
-        if s and not JUNK.match(s):
-            groups[s.lower()][s] += n
+        if cleaned[v]:
+            groups[tkey(cleaned[v])][cleaned[v]] += n
     disp = {k: best_display(c) for k, c in groups.items()}
-    return {v: disp.get(squash(v).lower(), "") for v in values}
+    return {v: disp[tkey(cleaned[v])] if cleaned[v] else "" for v in values}
 
 
 def exp_years(e):
@@ -193,7 +242,7 @@ def main():
             rows.append(dict(r, u=label))
     raw_counts = collections.Counter(r["c"] for r in rows)
     cmap = build_company_map(raw_counts)
-    dmap = build_simple_map(collections.Counter(r["de"] for r in rows))
+    dmap = build_title_map(collections.Counter(r["de"] for r in rows))
 
     out = []
     for r in rows:
@@ -232,6 +281,11 @@ def _selfcheck():
     assert m["NA"] == "" and m["Genpact India Pvt Ltd"] == "Genpact" and m["Bank of India"] == "Bank of India"
     assert m["Noble hospital"] == "Noble Hospital"
     assert exp_years("2.0") == 2 and exp_years("") is None and exp_years(0) is None
+    t = build_title_map(collections.Counter({"Assistance Mannager": 1, "Assistant Manager": 5, "Sr. excutive": 1,
+                                             "Senior Executive": 3, "hr manager": 1, "Sr.Manager": 1, "Senior Manager": 2, "Asst. Manager - HR": 1, "Resolution Analyst": 1, "NA": 1}))
+    assert t["Assistance Mannager"] == "Assistant Manager" and t["Sr. excutive"] == "Senior Executive", t
+    assert t["hr manager"] == "HR Manager" and t["Asst. Manager - HR"] == "Assistant Manager - HR", t
+    assert t["Resolution Analyst"] == "Resolution Analyst" and t["NA"] == "" and t["Sr.Manager"] == "Senior Manager", t
 
 
 if __name__ == "__main__":
