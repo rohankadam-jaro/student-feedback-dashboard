@@ -15,8 +15,13 @@ UNIS = {"DPU": "DPU", "BVDU": "BVDU", "Symbiosis": "Symbiosis", "Amrita": "Amrit
 
 JUNK = re.compile(r"(?i)^(na|n/?a|n\.a\.?|nil|none|no|null|nothing|not applicable|-+|\.+|0)$")
 SUFFIX = {"ltd", "limited", "pvt", "private", "pvtltd", "llp", "inc", "corp", "corporation", "co", "company",
-          "plc", "llc", "opc", "p", "lt", "ltdd", "pltd"}
+          "plc", "llc", "opc", "p", "lt", "ltdd", "pltd", "lmt", "lmtd", "prv", "pvtlmt"}
 WEAK_TAIL = {"india", "technology", "solution", "service", "group", "global", "consulting"}
+# trailing place names: "Fortis Hospital Mohali" -> "Fortis Hospital" (only when that base name exists)
+PLACES = {"pune", "mumbai", "bangalore", "bengaluru", "kochi", "mohali", "chennai", "hyderabad", "delhi", "gurgaon", "gurugram",
+          "noida", "ahmedabad", "surat", "guwahati", "jalandhar", "lavale", "chinchwad", "belgaum", "belagavi", "rohini",
+          "yerwada", "swargate", "baner", "kolkata", "nagpur", "nashik", "indore", "jaipur", "lucknow", "chandigarh", "vadodara",
+          "solapur", "thane", "navi", "kolhapur", "aurangabad", "coimbatore", "madurai", "trichy", "vizag", "bhopal", "india"}
 
 # key regex -> standard name (checked against the normalised key)
 ALIASES = [
@@ -29,9 +34,11 @@ ALIASES = [
     (r"^kotak (mahindra )?bank|^kotak mahindra$|^kotak$", "Kotak Mahindra Bank"), (r"^kotak (mahindra )?life", "Kotak Life Insurance"),
     (r"^kotak securitie", "Kotak Securities"),
     (r"^yes bank", "Yes Bank"), (r"^idfc", "IDFC FIRST Bank"), (r"^indusind", "IndusInd Bank"),
-    (r"^bajaj finance", "Bajaj Finance"), (r"^bajaj finserv", "Bajaj Finserv"), (r"^bajaj allianz life", "Bajaj Allianz Life Insurance"),
-    (r"^bajaj allianz general", "Bajaj Allianz General Insurance"), (r"^bajaj allianz$", "Bajaj Allianz"),
-    (r"^bank of america", "Bank of America"), (r"^deutsche bank", "Deutsche Bank"), (r"^dcb bank", "DCB Bank"),
+    (r"^bajaj finance", "Bajaj Finance"), (r"^bajaj finserv", "Bajaj Finserv"),
+    # 2025 rename: Bajaj Allianz General/Life -> Bajaj General/Life Insurance (Rohan: merge under new names)
+    (r"^bajaj (allianz )?life", "Bajaj Life Insurance"), (r"^bajaj (allianz )?general", "Bajaj General Insurance"),
+    (r"^bajaj allianz$", "Bajaj Allianz"), (r"^bajaj housing", "Bajaj Housing Finance"),
+    (r"^bank of america", "Bank of America"), (r"^deutsche( bank)?\b", "Deutsche Bank"), (r"^dcb bank", "DCB Bank"),
     (r"^accenture", "Accenture"), (r"^deloitte", "Deloitte"), (r"^concentrix", "Concentrix"),
     (r"^amazon", "Amazon"), (r"^flipkart", "Flipkart"), (r"^(tcs|tata consultancy)", "Tata Consultancy Services"),
     (r"^wipro", "Wipro"), (r"^capgemini", "Capgemini"), (r"^cognizant", "Cognizant"), (r"^genpact", "Genpact"),
@@ -44,12 +51,68 @@ ALIASES = [
     (r"^(l and t|lnt|larsen)", "Larsen & Toubro"), (r"^mahindra and mahindra", "Mahindra & Mahindra"),
     (r"^air india", "Air India"), (r"^astrazeneca", "AstraZeneca"), (r"^hexaware", "Hexaware"), (r"^teamlease", "TeamLease"),
     (r"^policy ?bazaar", "Policybazaar"), (r"^apollo hospital", "Apollo Hospitals"), (r"^alstom", "Alstom"),
-    (r"^bosch", "Bosch"), (r"^sun pharma", "Sun Pharma"), (r"^dr reddy", "Dr. Reddy's"), (r"^mott macdonald", "Mott MacDonald"),
+    (r"^bosch", "Bosch"), (r"^sun pharma", "Sun Pharma"), (r"^(dr|doctor) ?reddy", "Dr. Reddy's"), (r"^mott macdonald", "Mott MacDonald"),
     (r"^lodha", "Lodha"), (r"^anz\b", "ANZ"), (r"^cbre\b", "CBRE"), (r"^ust\b", "UST"), (r"^indian army", "Indian Army"),
     (r"^indian navy", "Indian Navy"), (r"^indian air ?force", "Indian Air Force"), (r"^ltimindtree|^lti\b|^mindtree", "LTIMindtree"),
     (r"^byju", "BYJU'S"), (r"^zomato", "Zomato"), (r"^swiggy", "Swiggy"), (r"^paytm", "Paytm"), (r"^d ?mart$|^avenue supermarts", "DMart"),
     (r"^bajaj auto$", "Bajaj Auto"), (r"^trichy srm", "Trichy SRM Medical College Hospital & Research Centre"),
-    (r"^(self employed|self employee|self|own business|business)$", "Self-employed"), (r"^freelanc", "Freelancer"),
+    (r"^(self employed|self employee|self emplyoed|self|own business|business)$", "Self-employed"), (r"^freelanc", "Freelancer"),
+    # full-data review, Nov 2026: same company written differently (units/subsidiaries go to the parent brand)
+    (r"^tata aia", "Tata AIA Life Insurance"), (r"^tata aig", "Tata AIG General Insurance"),
+    (r"^tata autocomp( systems?)?$", "Tata AutoComp Systems"), (r"^tata (consulting|cunsulting) engineer", "Tata Consulting Engineers"),
+    (r"^accord hotel", "Accord Hotels"), (r"^adani airport", "Adani Airports"), (r"^ageas federal", "Ageas Federal Life Insurance"),
+    (r"^airbnb", "Airbnb"), (r"^(american express|amex)\b", "American Express"), (r"^amrita hospital", "Amrita Hospital"),
+    (r"^apollo (main |multi ?speciality |speciality )?hospital", "Apollo Hospitals"), (r"^aster medcity", "Aster Medcity"),
+    (r"^bank of baroda", "Bank of Baroda"), (r"^barclays", "Barclays"), (r"^basf\b", "BASF"), (r"^(bny|bank of new york)\b", "BNY"),
+    (r"^britannia", "Britannia"), (r"^brose\b", "Brose India"), (r"^caterpillar", "Caterpillar"), (r"^c ?dac\b", "C-DAC"),
+    (r"^cg power", "CG Power"), (r"^ciel\b", "CIEL HR"), (r"^cipla\b", "Cipla"), (r"^citi( ?bank| ?group| ?corp)?\b", "Citi"),
+    (r"^clarivate", "Clarivate"), (r"^cma ?cgm", "CMA CGM"), (r"^colliers", "Colliers"), (r"^cummins", "Cummins"),
+    (r"^datamatics", "Datamatics"), (r"^dhl\b", "DHL"), (r"^digitide", "Digitide"), (r"^dnv\b", "DNV"), (r"^emerson", "Emerson"),
+    (r"^eneroil", "Eneroil Offshore Drilling"), (r"^exl\b", "EXL"), (r"^faurecia", "Faurecia"), (r"^fedex", "FedEx"),
+    (r"^ferrero", "Ferrero India"), (r"^flowserve", "Flowserve"), (r"^fortis hospital", "Fortis Hospital"), (r"^fortrea", "Fortrea"),
+    (r"^fujitsu", "Fujitsu"), (r"^gallagher", "Gallagher"), (r"^geojit", "Geojit"), (r"^gkn fokker", "GKN Fokker"),
+    (r"^godrej (and )?boyce", "Godrej & Boyce"), (r"^golden ?source", "GoldenSource"), (r"^(government( servant)?|govt)$", "Government"),
+    (r"^grant thornton", "Grant Thornton"), (r"^greenovation", "Greenovation"), (r"^grp\b", "GRP"), (r"^haldiram", "Haldiram's"),
+    (r"^hasbro", "Hasbro"), (r"^hbk\b", "HBK"), (r"^hdfc (amc|asset)", "HDFC AMC"), (r"^hdfc securit", "HDFC Securities"),
+    (r"^(hgs|hinduja global)\b", "HGS"), (r"^hhys", "HHYS Inframart"), (r"^honeywell", "Honeywell"), (r"^hotelkey", "Hotelkey"),
+    (r"^hsbc", "HSBC"), (r"^hyatt regency", "Hyatt Regency"), (r"^icici prudential$", "ICICI Prudential"),
+    (r"^iifl finance", "IIFL Finance"), (r"^iifl (capital|securit)", "IIFL Capital"), (r"^incedo", "Incedo"), (r"^incred\b", "InCred"),
+    (r"^indiamart", "IndiaMART"), (r"^indigo\b", "IndiGo"), (r"^indira ivf", "Indira IVF"), (r"^inspira", "Inspira Enterprise"),
+    (r"^(jones lang lasalle|jll)\b", "JLL"), (r"^j ?p ?morgan", "JPMorgan Chase"), (r"^jsw paint", "JSW Paints"),
+    (r"^jsw steel", "JSW Steel"), (r"^jsw energy", "JSW Energy"), (r"^kirloskar oil", "Kirloskar Oil Engines"),
+    (r"^kohinoor group", "Kohinoor Group"), (r"^lenskart", "Lenskart"), (r"^(lic|life insurance corporation)( of india)?$", "LIC"),
+    (r"^lic mutual", "LIC Mutual Fund"), (r"^lotus beauty", "Lotus Beauty Care"), (r"^lupin\b", "Lupin"),
+    (r"^marsh (and )?mc ?lennan", "Marsh McLennan"), (r"^medanta", "Medanta"), (r"^moc\b", "MOC Cancer Care"), (r"^molex", "Molex"),
+    (r"^morgan stanley", "Morgan Stanley"), (r"^mother dairy", "Mother Dairy"), (r"^motilal oswal", "Motilal Oswal"),
+    (r"^naos\b", "NAOS"), (r"^natwest", "NatWest"), (r"^navin fluorine", "Navin Fluorine International"), (r"^neeyamo", "Neeyamo"),
+    (r"^neutrino", "Neutrino Tech Systems"), (r"^nice\b", "NICE"), (r"^niramaya hospital", "Niramaya Hospital"),
+    (r"^northern trust", "Northern Trust"), (r"^novel jewel", "Novel Jewels"), (r"^ntt data", "NTT DATA"), (r"^nuvama", "Nuvama Wealth"),
+    (r"^one ?source", "OneSource"), (r"^optum", "Optum"), (r"^parkar", "Parkar Digital"), (r"^parle\b", "Parle"),
+    (r"^physics ?wallah", "Physics Wallah"), (r"^praj\b", "Praj Industries"), (r"^primera", "Primera Medical Technologies"),
+    (r"^rajiv gandhi cancer", "Rajiv Gandhi Cancer Institute"), (r"^reli[ea]nce general", "Reliance General Insurance"),
+    (r"^shalby", "Shalby Hospitals"), (r"^shell college", "Shell College of Hotel Management"),
+    (r"^siemens( gbs| technology| india)?$", "Siemens"), (r"^signify", "Signify"), (r"^sims\b", "SIMS Hospitals"),
+    (r"^sonovision", "Sonovision Aetos"), (r"^spinco", "Spinco Biotech"), (r"^star union dai ?ichi", "Star Union Dai-ichi Life Insurance"),
+    (r"^symbiosis (university )?hospital", "Symbiosis University Hospital & Research Centre"), (r"^syngene", "Syngene International"),
+    (r"^tesco", "Tesco"), (r"^tforce", "TForce"), (r"^thermax", "Thermax"), (r"^trans ?union", "TransUnion CIBIL"),
+    (r"^(trent hypermarket|star bazaar)", "Trent Hypermarket"), (r"^truhome", "Truhome Finance"), (r"^tvs motor", "TVS Motor"),
+    (r"^tvs supply", "TVS Supply Chain Solutions"), (r"^twilio", "Twilio"), (r"^ups\b", "UPS"), (r"^vascon", "Vascon Engineers"),
+    (r"^woori bank", "Woori Bank"), (r"^zinnia", "Zinnia"), (r"^zydus hospital", "Zydus Hospital"),
+    (r"^zydus (lifescien|lifescince|pharma|cadila)", "Zydus Lifesciences"), (r"^manipal hospital", "Manipal Hospitals"),
+    (r"^suraksha children", "Suraksha Children's Hospital"), (r"^principal global", "Principal Global Services"),
+    (r"^south indian? cafe", "South Indian Cafe"), (r"^bombay hospita", "Bombay Hospital"),
+    (r"^aditya b(ir|ri)la sun ?life insurance", "Aditya Birla Sun Life Insurance"), (r"^zen multi ?speciality|^zen multispecialty", "Zen Multispeciality Hospital"),
+    (r"^ethios", "Ethios Enviro Solutions"), (r"^(national institute of securities market|nism)\b", "NISM"),
+    (r"^(hindustan petro|hpcl\b)", "HPCL"), (r"^aster lab", "Aster Labs"), (r"^garware technical", "Garware Technical Fibres"),
+    (r"^echobooom", "Echobooom Management Solutions"), (r"^messe mu", "Messe München India"), (r"^bluestone", "BlueStone Jewellery"),
+    (r"^dr ?d ?y ?patil hospital", "Dr. D. Y. Patil Hospital & Research Centre"), (r"^dassault syst", "Dassault Systèmes"),
+    (r"^wakefit", "Wakefit Innovations"), (r"^gufic", "Gufic Biosciences"), (r"^bt e ?serv", "BT e-Serve"),
+    (r"^sutherland", "Sutherland Global Services"), (r"^arupavi", "Arupavi Healthcare Technology"),
+    (r"^lambda therapeutic", "Lambda Therapeutic Research"), (r"^tagore hospital", "Tagore Hospital & Heart Care Centre"),
+    (r"^fresenius kabi", "Fresenius Kabi"), (r"^(hindustan unilever|hul)$", "Hindustan Unilever"),
+    (r"^(procter and gamble|p and g)\b", "Procter & Gamble"), (r"^itc\b", "ITC"),
+    (r"^tata electronics", "Tata Electronics"), (r"^reliance (corp it park|it)$", "Reliance Industries"), (r"^titan eye", "Titan"),
+    (r"^tata$", "Tata Group"), (r"^iifl$", "IIFL"), (r"^aiims$", "AIIMS"),
 ]
 PROGRAMS = {
     "MBA": "MBA", "Online MBA": "MBA", "Online MBA Programme": "MBA", "MBA (General Management)": "MBA (General Management)",
@@ -122,13 +185,14 @@ def singular(t):
     return t[:-3] + "y" if t.endswith("ies") else t[:-1] if t.endswith("s") else t
 
 
-def key_of(s):
+def key_of(s, sing=True):
+    """sing=False keeps plurals so ALIASES regexes see 'infosys', 'siemens' as written."""
     k = s.lower().replace("&", " and ")
     k = re.sub(r"^(m/s\.?|the)\s+", "", k)
     toks = re.sub(r"[^a-z0-9]+", " ", k).split()
     while toks and toks[-1] in SUFFIX:
         toks.pop()
-    return " ".join(singular(t) for t in toks)
+    return " ".join(singular(t) for t in toks) if sing else " ".join(toks)
 
 
 SMALL = {"of", "and", "the", "for", "in", "at", "on", "&"}
@@ -181,17 +245,21 @@ def build_company_map(raws):
         variants[g][strip_suffix_display(s) or s] += n
         rep.setdefault(g, k)
         if g not in alias_of:
+            raw_k = key_of(s, sing=False)
             for rx, name in ALIASES:
-                if re.search(rx, k):
+                if re.search(rx, raw_k):
                     alias_of[g] = name
                     break
 
-    # merge "x india" / "x technologies" into "x" when "x" exists
+    # merge "x india" / "x technologies" / "x pune" into "x" when "x" exists
     parent = {}
     for g, k in rep.items():
         toks = k.split()
-        if len(toks) > 1 and toks[-1] in WEAK_TAIL and "".join(toks[:-1]) in counts:
-            parent[g] = "".join(toks[:-1])
+        while len(toks) > 1 and (toks[-1] in WEAK_TAIL or toks[-1] in PLACES or toks[-1].isdigit()):
+            toks.pop()
+            if "".join(toks) in counts and "".join(toks) != g:
+                parent[g] = "".join(toks)
+                break
     # typo merge: rare key very close to a common one ("axis nank" -> "axis bank")
     common = [g for g, n in counts.items() if n >= 3]
     for g, n in counts.items():
@@ -209,8 +277,30 @@ def build_company_map(raws):
             k = parent[k]
         return k
 
+    # words most people typed in capitals stay capitals: "Tata Aia" -> "Tata AIA", "Hsbc" -> "HSBC"
+    caps = collections.Counter()
+    seen = collections.Counter()
+    for raw, n in raws.items():
+        for w in re.findall(r"[A-Za-z]{2,5}", squash(raw)):
+            seen[w.lower()] += n
+            caps[w.lower()] += n if w.isupper() and not squash(raw).isupper() else 0
+
+    def acronyms(s):
+        out = []
+        for w in s.split():
+            lw, alpha = w.lower(), w.isalpha() and len(w) <= 5
+            majority_caps = caps[lw] * 2 > seen[lw]
+            no_vowel = not re.search(r"[aeiou]", lw)
+            if alpha and (majority_caps and seen[lw] >= 2 or no_vowel and len(w) >= 2):
+                out.append(w.upper())                      # Hsbc -> HSBC, Aia -> AIA
+            elif alpha and w.isupper() and len(w) >= 3 and seen[lw] >= 2 and not majority_caps:
+                out.append(w.capitalize())                 # Mutual FUND -> Mutual Fund
+            else:
+                out.append(w)
+        return " ".join(out)
+
     # display comes from the root's own spellings, so "Morningstar India" folds into "Morningstar"
-    final = {k: alias_of.get(k) or alias_of.get(root(k)) or best_display(variants[root(k)]) for k in counts}
+    final = {k: alias_of.get(k) or alias_of.get(root(k)) or acronyms(best_display(variants[root(k)])) for k in counts}
     return {raw: (final[k] if k else "") for raw, k in raw_key.items()}
 
 
@@ -276,6 +366,13 @@ def _selfcheck():
     assert m["Intas Pharmaceutical Ltd"] == m["Intas Pharmaceuticals"], m
     assert m["Axismax Life insurance"] == "Axis Max Life Insurance"
     assert m["Kotak Life Insurance"] != m["Kotak Mahindra Bank Ltd"] == "Kotak Mahindra Bank"
+    m2 = build_company_map(collections.Counter({"Tata Aia": 1, "Tata AIA Life Insurance": 1, "Tata Aig General Insurance": 1,
+                                               "Infosys BPM Ltd": 2, "Infosys Pvt Lmt": 1, "Fortis Hospital": 2, "Fortis Hospital Mohali": 1,
+                                               "Bajaj Allianz General Insurance": 1, "TATA Motors Passenger Vehicle": 1, "Bank of India": 1}))
+    assert m2["Tata Aia"] == m2["Tata AIA Life Insurance"] != m2["Tata Aig General Insurance"], m2
+    assert m2["Infosys BPM Ltd"] == m2["Infosys Pvt Lmt"] == "Infosys" and m2["Fortis Hospital Mohali"] == "Fortis Hospital", m2
+    assert m2["Bajaj Allianz General Insurance"] == "Bajaj General Insurance" and m2["TATA Motors Passenger Vehicle"] == "Tata Motors"
+    assert m2["Bank of India"] == "Bank of India"
     assert m["AXIS BANK"] == m["Axis Bank Ltd."] == m["Axis Nank"] == "Axis Bank", m
     assert m["Axis Max life insurance company"] == m["Axis Max Life Insurance Company Ltd"] == "Axis Max Life Insurance"
     assert m["NA"] == "" and m["Genpact India Pvt Ltd"] == "Genpact" and m["Bank of India"] == "Bank of India"
